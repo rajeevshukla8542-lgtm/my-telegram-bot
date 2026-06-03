@@ -2,6 +2,7 @@ import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import time
 import sqlite3
+import threading
 
 # 1. BOT TOKEN
 TOKEN = "8862005997:AAGnKDRRaOTj4Nz9LA6NRMumHEu_d7ueNVA"
@@ -11,7 +12,7 @@ bot = telebot.TeleBot(TOKEN)
 MAIN_GROUP_ID = -1003935974729
 STORAGE_CHAT_ID = -1003962769274
 START_MESSAGE_ID = 3
-OWNER_ID = 1411317912
+OWNER_ID = 1411317912  # Aapki asli ID set hai
 
 # 3. DATABASE SETUP
 conn = sqlite3.connect("users.db", check_same_thread=False)
@@ -26,6 +27,14 @@ def is_user_member(user_id):
         return member.status in ['member', 'administrator', 'creator']
     except:
         return False
+
+# Function to delete message after delay
+def delete_message_after_delay(chat_id, message_id, delay=60):
+    time.sleep(delay)
+    try:
+        bot.delete_message(chat_id, message_id)
+    except Exception as e:
+        print(f"Delete error: {e}")
 
 # /start command
 @bot.message_handler(commands=['start'])
@@ -66,12 +75,19 @@ def callback_listener(call):
 
             while empty_streak < 20:
                 try:
-                    bot.copy_message(
+                    sent_msg = bot.copy_message(
                         chat_id=call.message.chat.id,
                         from_chat_id=STORAGE_CHAT_ID,
                         message_id=current_id,
                         protect_content=True
                     )
+                    
+                    # File ko 1 minute (60 seconds) baad delete karne ka timer
+                    threading.Thread(
+                        target=delete_message_after_delay, 
+                        args=(call.message.chat.id, sent_msg.message_id, 60)
+                    ).start()
+
                     success_count += 1
                     empty_streak = 0
                 except:
@@ -81,10 +97,23 @@ def callback_listener(call):
             if success_count == 0:
                 bot.send_message(call.message.chat.id, "⚠️ Storage me koi file nahi mili.")
             else:
-                bot.send_message(call.message.chat.id, f"✅ Done! {success_count} files bhej di gayi hain.")
+                # 📢 YAHAN BOT BATA RAHA HAI KYUN DELETE HO RAHA HAI!
+                warning_text = (
+                    f"✅ **Done! {success_count} files bhej di gayi hain.**\n\n"
+                    "⚠️ **IMPORTANT NOTICE:**\n"
+                    "Copyright issues ki wajah se yeh saari files **1 MINUTE** me is chat se automatic delete ho jayengi! "
+                    "Jaldi se dekh lo ya kisi doosre chat me forward/save kar lo."
+                )
+                warning_msg = bot.send_message(call.message.chat.id, warning_text, parse_mode="Markdown")
+                
+                # Yeh warning message bhi 1 minute baad khud gayab ho jayega
+                threading.Thread(
+                    target=delete_message_after_delay, 
+                    args=(call.message.chat.id, warning_msg.message_id, 60)
+                ).start()
         else:
             bot.answer_callback_query(call.id, "❌ Pehle group join karo!", show_alert=True)
 
 # Bot ko run karne ke liye
-print("Secure Bot with Stats is running...")
+print("Secure Bot with Auto-Delete & Alerts is running...")
 bot.infinity_polling()
