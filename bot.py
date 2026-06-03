@@ -75,11 +75,12 @@ def callback_listener(call):
 
             while empty_streak < 20:
                 try:
+                    # YAHAN protect_content=False kiya hai taaki user save/forward kar sake 1 min me
                     sent_msg = bot.copy_message(
                         chat_id=call.message.chat.id,
                         from_chat_id=STORAGE_CHAT_ID,
                         message_id=current_id,
-                        protect_content=True
+                        protect_content=False
                     )
                     
                     # File ko 1 minute (60 seconds) baad delete karne ka timer
@@ -97,12 +98,12 @@ def callback_listener(call):
             if success_count == 0:
                 bot.send_message(call.message.chat.id, "⚠️ Storage me koi file nahi mili.")
             else:
-                # 📢 YAHAN BOT BATA RAHA HAI KYUN DELETE HO RAHA HAI!
+                # User ko clear warning aur tarika batana
                 warning_text = (
                     f"✅ **Done! {success_count} files bhej di gayi hain.**\n\n"
                     "⚠️ **IMPORTANT NOTICE:**\n"
                     "Copyright issues ki wajah se yeh saari files **1 MINUTE** me is chat se automatic delete ho jayengi! "
-                    "Jaldi se dekh lo ya kisi doosre chat me forward/save kar lo."
+                    "Jaldi se is file ko select karke apne **'Saved Messages'** ya kisi doosre chat me forward (save) kar lo."
                 )
                 warning_msg = bot.send_message(call.message.chat.id, warning_text, parse_mode="Markdown")
                 
@@ -115,5 +116,5 @@ def callback_listener(call):
             bot.answer_callback_query(call.id, "❌ Pehle group join karo!", show_alert=True)
 
 # Bot ko run karne ke liye
-print("Secure Bot with Auto-Delete & Alerts is running...")
+print("Secure Bot with Auto-Delete & Forward Enabled is running...")
 bot.infinity_polling()
